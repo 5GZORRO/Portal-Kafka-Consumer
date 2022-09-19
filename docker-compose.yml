@@ -1,0 +1,41 @@
+version: '3'
+services:
+  portal-kafka-consumer:
+    container_name: portal-kafka-consumer
+    build: src/.
+    ports:
+      - 8080:8080
+    restart: on-failure
+    environment:
+      PORT: '8080'
+    env_file:
+      - src/.env
+    depends_on: 
+      - pkc-redis
+      - kafka
+
+  pkc-redis:
+    container_name: pkc-redis
+    image: redis:7.0.4-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+
+      
+
+# TESTING PURPOSES
+  kafka:
+    image: spotify/kafka
+    container_name: kafka
+    ports:
+      - 9092:9092
+      - 29092:29092
+    environment:
+      ADVERTISED_HOST: kafka
+      ADVERTISED_PORT: '9092'
+      AUTO_CREATE_TOPICS: 'true'
+      GROUP_ID: none  
+    command: >
+      bash -c "(sleep 3s     
+      && /opt/kafka_2.11-0.10.1.0/bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic sla-monitor-topic-out &) 
+      && (supervisord -n)"

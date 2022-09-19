@@ -1,0 +1,147 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: portal-kafka-consumer-service
+spec:
+  selector:
+    app: portal-kafka-consumer
+  ports:
+  - port: 8080 
+    targetPort: 8080
+
+
+---
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portal-kafka-consumer-deployment 
+spec:
+  selector:
+    matchLabels:
+      app: portal-kafka-consumer
+  template:
+    metadata:
+      labels:
+        app: portal-kafka-consumer
+    spec:
+      initContainers:        
+        - name: dependencies # Checks if pkc-redis is Ready
+          image: bitnami/kubectl
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "/scripts/dependencies.sh"]
+          env:
+            - name: REQUIREMENT_PODS
+              value: app=pkc-redis
+            - name: max_timer
+              value: '300'
+            - name: namespace
+              value: portal-kafka-consumer
+          volumeMounts:
+              - mountPath: /scripts
+                name: scripts-volume
+
+      #imagePullSecrets:
+      #  - name: harbor-registry-secret
+      containers:
+      - name: portal-kafka-consumer
+        image: ubiwhere/portal-kafka-consumer
+        imagePullPolicy: Always
+        envFrom:
+          - configMapRef:
+              name: portal-kafka-consumer-config
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+      serviceAccountName: portal-kafka-consumer-sa
+      volumes: 
+        - name: scripts-volume 
+          configMap:
+            name: portal-kafka-consumer-scripts
+            defaultMode: 0744
+         
+            
+---
+
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portal-kafka-consumer-config
+data: 
+  KAFKA_HOST : "172.28.3.196:9092"
+  KAFKA_TOPIC_IN: sla-monitor-topic-out
+  REDIS_HOST: pkc-redis
+  REDIS_PORT: "6379"
+
+  # 5Tonic URLS
+  # KAFKA_HOST : "10.4.2.61:9092"
+
+
+---
+
+
+apiVersion: v1 
+kind: ConfigMap
+metadata:
+  name: portal-kafka-consumer-scripts
+data:
+  dependencies.sh: |
+    #!/bin/bash
+
+    PODS=($(echo ${REQUIREMENT_PODS} | sed 's/;/ /g')); ready_pods=0; 
+    for pod in "${PODS[@]}"; do 
+        pod_labels=$(echo ${pod} | cut -d'+' -f2); 
+        while [[ ${max_timer} -gt 0 ]]; do 
+        count_pods_ready=$(kubectl get pods -n ${namespace} -l ${pod_labels} -o go-template='{{range $index, $element := .items}}{{range .status.containerStatuses}}{{if .ready}}{{$element.metadata.name}}{{"\n"}}{{end}}{{end}}{{end}}' | wc -l);
+        if [[ ${count_pods_ready} -eq 0 ]]; then sleep 1; ((max_timer--)); echo "${max_timer}s"; 
+        else ((ready_pods++)); break; fi; 
+    done; done; 
+    if [[ ${ready_pods} -eq ${#PODS[@]} ]]; then exit 0; 
+    else exit -1; fi
+
+
+---
+
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: portal-kafka-consumer-sa
+  namespace: portal-kafka-consumer
+
+
+---
+
+
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: portal-kafka-consumer
+  name: pod-r
+rules:
+  - apiGroups: [""] 
+    resources: ["pods"]
+    verbs: ["get", "watch", "list"]
+
+
+---
+
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: portal-kafka-consumer_pod-r
+  namespace: portal-kafka-consumer
+subjects:
+  - kind: ServiceAccount
+    name: portal-kafka-consumer-sa 
+    namespace: portal-kafka-consumer
+roleRef:
+  kind: Role 
+  name: pod-r
+  apiGroup: rbac.authorization.k8s.io
