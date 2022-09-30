@@ -5,9 +5,11 @@ metadata:
 spec:
   selector:
     app: portal-kafka-consumer
+  type: NodePort
   ports:
   - port: 8080 
     targetPort: 8080
+    nodePort: 30000
 
 
 ---
@@ -42,8 +44,6 @@ spec:
               - mountPath: /scripts
                 name: scripts-volume
 
-      #imagePullSecrets:
-      #  - name: harbor-registry-secret
       containers:
       - name: portal-kafka-consumer
         image: ubiwhere/portal-kafka-consumer
@@ -73,11 +73,14 @@ kind: ConfigMap
 metadata:
   name: portal-kafka-consumer-config
 data: 
-  KAFKA_HOST : "172.28.3.196:9092"
+  PORT: '8080'
   KAFKA_TOPIC_IN: sla-monitor-topic-out
-  REDIS_HOST: pkc-redis
+  REDIS_HOST: pkc-redis-service
   REDIS_PORT: "6379"
 
+  # BCN URLS
+  KAFKA_HOST : "172.28.3.196:9092"
+  
   # 5Tonic URLS
   # KAFKA_HOST : "10.4.2.61:9092"
 
