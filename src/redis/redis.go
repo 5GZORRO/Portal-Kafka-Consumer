@@ -29,6 +29,7 @@ func connect() (*redis.Client, error) {
 		log.Printf("Error connecting to Redis: %s", err)
 		return nil, err
 	}
+	log.Println("Connected to Redis")
 	return client, nil
 }
 

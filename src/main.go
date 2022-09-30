@@ -9,7 +9,6 @@ import (
 )
 
 func main() {
-
 	// Fetches Kafka env variables
 	host, hostPresent := os.LookupEnv("KAFKA_HOST")
 	if !hostPresent {
@@ -28,7 +27,18 @@ func main() {
 	// Opens consumer
 	go kafka.Consume()
 
+	// Fetches Server Port
+	port, portPresent := os.LookupEnv("PORT")
+	if !portPresent {
+		log.Println("Error occurred while fetching Port")
+		return
+	}
+
 	// Starts the server
 	http.HandleFunc("/", api.GetViolations)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Println("Server is Running on localhost:" + port) // Should be below but oh well
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		log.Println("Error occured while creating Server" + err.Error())
+		return
+	}
 }

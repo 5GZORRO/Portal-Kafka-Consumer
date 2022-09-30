@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"portal-kafka-consumer/model"
 	"portal-kafka-consumer/redis"
@@ -52,5 +53,28 @@ func (kfa *Kafka) Consume() {
 
 		// Store in Database
 		redis.Set(violation.ID, message)
+	}
+}
+
+// To be removed -> Function that just pushes a boilerplate violation to Kafka to test application
+func (kfa *Kafka) Test() {
+
+	time.Sleep(10 * time.Second)
+
+	conn, err := kafka.DialLeader(context.Background(), "tcp", kfa.Host, kfa.Topic, 0)
+	if err != nil {
+		log.Fatal("failed to dial leader:", err)
+	}
+
+	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+	_, err = conn.WriteMessages(
+		kafka.Message{Value: []byte("{ \"id\": \"9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d\", \"productID\": \"9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d\", \"transactionID\": \"9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d\",  \"sla\": { \"id\": \"9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d\",  \"href\": \"http://www.acme.com/slaManagement/sla/123444\" }, \"rule\": { \"id\": \"availability\", \"metric\": \"http://www.provider.com/metrics/availability\", \"unit\": \"%\", \"referenceValue\": \"99.95\", \"operator\": \".ge\", \"tolerance\": \"0.05\", \"consequence\": \"http://www.provider.com/contract/claus/30\" }, \"violation\": { \"actualValue\": \"90.0\" } }")},
+	)
+	if err != nil {
+		log.Fatal("failed to write messages:", err)
+	}
+
+	if err := conn.Close(); err != nil {
+		log.Fatal("failed to close writer:", err)
 	}
 }
