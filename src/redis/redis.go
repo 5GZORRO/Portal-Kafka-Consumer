@@ -29,7 +29,7 @@ func connect() (*redis.Client, error) {
 		log.Printf("Error connecting to Redis: %s", err)
 		return nil, err
 	}
-	log.Println("Connected to Redis")
+	//log.Println("Connected to Redis")
 	return client, nil
 }
 
@@ -61,7 +61,7 @@ func Get(key string) (string, error) {
 	if err != nil {
 		os.Exit(1)
 	}
-	log.Printf("Fetching value from key: %s", key)
+	//log.Printf("Fetching value from key: %s", key)
 	value, err := db.Get(ctx, key).Result()
 	if err != nil {
 		log.Printf("Error getting k in redis: %s", key)
@@ -81,7 +81,7 @@ func GetAllKeys() ([]string, error) {
 	if err != nil {
 		os.Exit(1)
 	}
-	log.Printf("Fetching all key, values")
+	//log.Printf("Fetching all key, values")
 
 	// Get all keys
 	keys, _, err := db.Scan(ctx, 0, "*", 0).Result()
@@ -103,7 +103,7 @@ func Delete(key string) error {
 		os.Exit(1)
 	}
 
-	log.Printf("Deleting key from Redis: %s", key)
+	//log.Printf("Deleting key from Redis: %s", key)
 	err = db.Del(ctx, key).Err()
 	if err != nil {
 		log.Printf("Error deleting key in redis: %s", key)

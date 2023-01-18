@@ -1,9 +1,10 @@
 package model
 
 type Violation struct {
-	ID         string `json:"id"`
-	ProductDID string `json:"productDID"`
-	SLA        struct {
+	ID            string `json:"id"`
+	ProductDID    string `json:"productDID"`
+	TransactionID string `json:"transactionID"`
+	SLA           struct {
 		ID   string `json:"id"`
 		Href string `json:"href"`
 	} `json:"sla"`

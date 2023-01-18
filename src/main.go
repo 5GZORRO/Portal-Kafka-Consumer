@@ -6,6 +6,8 @@ import (
 	"os"
 	"portal-kafka-consumer/api"
 	"portal-kafka-consumer/kafka"
+	"portal-kafka-consumer/redis"
+	"time"
 )
 
 func main() {
@@ -27,6 +29,8 @@ func main() {
 	// Opens consumer
 	go kafka.Consume()
 
+	go automaticCleanup()
+
 	// Fetches Server Port
 	port, portPresent := os.LookupEnv("PORT")
 	if !portPresent {
@@ -40,5 +44,18 @@ func main() {
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Println("Error occured while creating Server" + err.Error())
 		return
+	}
+}
+
+// Method that executes every minute and clears stack of notifications
+func automaticCleanup() {
+
+	time.Sleep(1 * time.Minute)
+
+	// Get All stored violations
+	keys, _ := redis.GetAllKeys()
+
+	for _, key := range keys {
+		redis.Delete(key) // Delete that violation entry from stack
 	}
 }

@@ -28,9 +28,15 @@ func GetViolations(w http.ResponseWriter, r *http.Request) {
 		utils.JsonToStruct(&violation, violationJson)
 		listViolations = append(listViolations, violation)
 
-		redis.Delete(key) // Delete that violation entry from stack
+		//redis.Delete(key) // Delete that violation entry from stack
 	}
 
+	//log.Println("Returning Violations:")
+	//log.Println(listViolations)
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(listViolations)
